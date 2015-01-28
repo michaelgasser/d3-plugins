@@ -53,8 +53,43 @@ d3.sankey = function() {
   sankey.link = function() {
     var curvature = .5;
 
+    // Determine the link x,y values. 
+    // Links are made up of 2 small straight elements at beginning and end 
+    // with a curved element in between.
     function link(d) {
-      var x0 = d.source.x + d.source.dx,
+      if (d.target.vertical) {
+        var x0 = d.source.x + d.source.dx,
+          x1 = d.target.x + d.dy/2,
+          x4 = x0 + d.source.dx,
+          x5 = x1,
+          xi = d3.interpolateNumber(x0, x1), 
+          x2 = Math.max(xi(curvature), x4+d.dy),
+          x3 = x1,
+          y0 = d.source.y + d.sy + d.dy / 2,
+          y1 = d.target.y + d.ty + d.dy / 2,
+          y4 = y0,
+          y2 = y0,
+          deltay = y1-y0;
+          y5;
+        if (deltay > 0) { 
+          y1 = d.target.y; 
+          y5 = y1 - d.target.dx; 
+          } 
+        else { 
+          y1 = d.target.y + d.source.dx; 
+          y5 = y1 + d.target.dx; 
+          };
+        var yi = d3.interpolateNumber(y0, y1);
+        if (deltay > 0) {
+            y3 = Math.min(yi(curvature), y5-d.dy);
+          }
+        else {
+            y3 = Math.max(yi(curvature), y5+d.dy);
+          };
+      }
+      
+      else {
+        var x0 = d.source.x + d.source.dx,
           x1 = d.target.x,
           x4 = x0 + d.source.dx,
           x5 = x1 - d.target.dx,
@@ -62,12 +97,18 @@ d3.sankey = function() {
           x2 = Math.max(xi(curvature), x4+d.dy),
           x3 = Math.min(xi(curvature), x5-d.dy),
           y0 = d.source.y + d.sy + d.dy / 2,
-          y1 = d.target.y + d.ty + d.dy / 2;
+          y1 = d.target.y + d.ty + d.dy / 2,
+          y4 = y0,
+          y5 = y1,
+          y2 = y0,
+          y3 = y1;
+      }
+          
       return "M" + x0 + "," + y0
-           + "L" + x4 + "," + y0
-           + "C" + x2 + "," + y0
-           + " " + x3 + "," + y1
-           + " " + x5 + "," + y1
+           + "L" + x4 + "," + y4
+           + "C" + x2 + "," + y2
+           + " " + x3 + "," + y3
+           + " " + x5 + "," + y5
            + "L" + x1 + "," + y1;
     };
 
@@ -110,7 +151,8 @@ d3.sankey = function() {
   // Iteratively assign the breadth (x-position) for each node.
   // Nodes are assigned the maximum breadth of incoming neighbors plus one;
   // nodes with no incoming links are assigned breadth zero, while
-  // nodes with no outgoing links are assigned the maximum breadth.
+  // nodes with no outgoing links are assigned the maximum breadth, except 
+  // nodes with the vertical attribute, which are moved to the incoming neighbor plus 0.5
   function computeNodeBreadths() {
     var remainingNodes = nodes,
         nextNodes,
@@ -147,7 +189,8 @@ d3.sankey = function() {
   function moveSinksRight(x) {
     nodes.forEach(function(node) {
       if (!node.sourceLinks.length) {
-        node.x = x - 1;
+          if (node.vertical) { node.x = node.x -0.5;}
+          else { node.x = x - 1; }
       }
     });
   }
@@ -158,6 +201,8 @@ d3.sankey = function() {
     });
   }
 
+  // Iteratively assign the depth (y-position) for each node
+  // Nodes with the vertical attribute are moved to the bottom
   function computeNodeDepths(iterations) {
     var nodesByBreadth = d3.nest()
         .key(function(d) { return d.x; })
@@ -165,7 +210,6 @@ d3.sankey = function() {
         .entries(nodes)
         .map(function(d) { return d.values; });
 
-    //
     initializeNodeDepth();
     resolveCollisions();
     for (var alpha = 1; iterations > 0; --iterations) {
@@ -174,7 +218,8 @@ d3.sankey = function() {
       relaxLeftToRight(alpha);
       resolveCollisions();
     }
-
+    moveVerticalDown();
+    
     function initializeNodeDepth() {
       var ky = d3.min(nodesByBreadth, function(nodes) {
         return (size[1] - (nodes.length - 1) * nodePadding) / d3.sum(nodes, value);
@@ -257,6 +302,14 @@ d3.sankey = function() {
 
     function ascendingDepth(a, b) {
       return a.y - b.y;
+    }
+    
+    function moveVerticalDown() {
+      nodesByBreadth.forEach(function(nodes) {
+        nodes.forEach(function(node, i) {
+          if ( node.vertical ) { node.y = size[1] - node.dy; };
+        });
+      });
     }
   }
 
