@@ -56,60 +56,65 @@ d3.sankey = function() {
     // Determine the link x,y values. 
     // Links are made up of 2 small straight elements at beginning and end 
     // with a curved element in between.
+    // (x0,y0), (x5,y5) are the start/end points of the links 
+    // (x1,y1), (x4,y4) change between straight and curved elements
+    // (x2,y2), (x3,y3) curve helper points
+    // Nodes with the attribute vertical have vertical incoming links,
+    // either from the top or bottom, depending on deltaY.
     function link(d) {
       if (d.target.vertical) {
         var x0 = d.source.x + d.source.dx,
-          x1 = d.target.x + d.dy/2,
-          x4 = x0 + d.source.dx,
-          x5 = x1,
-          xi = d3.interpolateNumber(x0, x1), 
-          x2 = Math.max(xi(curvature), x4+d.dy),
-          x3 = x1,
+          x1 = x0 + d.source.dx,
+          x5 = d.target.x + d.dy/2,
+          x4 = x5,
+          xi = d3.interpolateNumber(x1, x4), 
+          x2 = Math.max(xi(curvature), x1+d.dy),
+          x3 = x5,
           y0 = d.source.y + d.sy + d.dy / 2,
-          y1 = d.target.y + d.ty + d.dy / 2,
-          y4 = y0,
-          y2 = y0,
-          deltay = y1-y0;
-          y5;
-        if (deltay > 0) { 
-          y1 = d.target.y; 
-          y5 = y1 - d.target.dx; 
+          y1 = y0,
+          y5 = d.target.y + d.ty + d.dy / 2,
+          y4,
+          deltaY = y5-y0,
+          y2 = y0;
+        if (deltaY > 0) { 
+          y5 = d.target.y; 
+          y4 = y5 - d.target.dx; 
           } 
         else { 
-          y1 = d.target.y + d.source.dx; 
-          y5 = y1 + d.target.dx; 
+          y5 = d.target.y + d.source.dx; 
+          y4 = y5 + d.target.dx; 
           };
-        var yi = d3.interpolateNumber(y0, y1);
-        if (deltay > 0) {
-            y3 = Math.min(yi(curvature), y5-d.dy);
+        var yi = d3.interpolateNumber(y1, y4);
+        if (deltaY > 0) {
+            y3 = Math.min(yi(curvature), y4-d.dy);
           }
         else {
-            y3 = Math.max(yi(curvature), y5+d.dy);
+            y3 = Math.max(yi(curvature), y4+d.dy);
           };
       }
       
       else {
         var x0 = d.source.x + d.source.dx,
-          x1 = d.target.x,
-          x4 = x0 + d.source.dx,
-          x5 = x1 - d.target.dx,
-          xi = d3.interpolateNumber(x0, x1), 
-          x2 = Math.max(xi(curvature), x4+d.dy),
-          x3 = Math.min(xi(curvature), x5-d.dy),
+          x1 = x0 + d.source.dx,
+          x5 = d.target.x,
+          x4 = x5 - d.target.dx,
+          xi = d3.interpolateNumber(x1, x4), 
+          x2 = Math.max(xi(curvature), x1+d.dy),
+          x3 = Math.min(xi(curvature), x4-d.dy),
           y0 = d.source.y + d.sy + d.dy / 2,
-          y1 = d.target.y + d.ty + d.dy / 2,
-          y4 = y0,
-          y5 = y1,
+          y1 = y0,
+          y5 = d.target.y + d.ty + d.dy / 2,
+          y4 = y5,
           y2 = y0,
-          y3 = y1;
+          y3 = y5;
       }
           
       return "M" + x0 + "," + y0
-           + "L" + x4 + "," + y4
+           + "L" + x1 + "," + y1
            + "C" + x2 + "," + y2
            + " " + x3 + "," + y3
-           + " " + x5 + "," + y5
-           + "L" + x1 + "," + y1;
+           + " " + x4 + "," + y4
+           + "L" + x5 + "," + y5;
     };
 
     link.curvature = function(_) {
