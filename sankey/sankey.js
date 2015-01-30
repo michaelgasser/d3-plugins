@@ -39,7 +39,8 @@ d3.sankey = function() {
   sankey.layout = function(iterations) {
     computeNodeLinks();
     computeNodeValues();
-    computeNodeBreadths();
+    // use posX is specified in node definition (needs to be specified for all nodes).
+    if ("posX" in nodes[1]) {setNodeBreadths();} else {computeNodeBreadths();};    
     computeNodeDepths(iterations);
     computeLinkDepths();
     return sankey;
@@ -153,6 +154,17 @@ d3.sankey = function() {
     });
   }
 
+  // Set breadth (x-position) for each node, if given in data.
+  function setNodeBreadths() {
+      var posXlist = []
+      nodes.forEach(function(node) {
+          node.x = node.posX;
+          node.dx = nodeWidth;
+          posXlist.push(node.posX);
+      });
+      scaleNodeBreadths((size[0] - nodeWidth) / Math.max.apply(null, posXlist)); 
+      };
+      
   // Iteratively assign the breadth (x-position) for each node.
   // Nodes are assigned the maximum breadth of incoming neighbors plus one;
   // nodes with no incoming links are assigned breadth zero, while
