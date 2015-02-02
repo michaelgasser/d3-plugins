@@ -39,9 +39,10 @@ d3.sankey = function() {
   sankey.layout = function(iterations) {
     computeNodeLinks();
     computeNodeValues();
-    // use posX is specified in node definition (needs to be specified for all nodes).
-    if ("posX" in nodes[1]) {setNodeBreadths();} else {computeNodeBreadths();};    
-    computeNodeDepths(iterations);
+    // use posX /posY if specified in node definition.
+    // posX /posY needs to be specified for all nodes, but is only checked in first).
+    if ("posX" in nodes[1]) {setNodeBreadths();} else {computeNodeBreadths();}; 
+    computeNodeDepths(iterations); 
     computeLinkDepths();
     return sankey;
   };
@@ -217,7 +218,7 @@ d3.sankey = function() {
       node.x *= kx;
     });
   }
-
+ 
   // Iteratively assign the depth (y-position) for each node
   // Nodes with the vertical attribute are moved to the bottom
   function computeNodeDepths(iterations) {
@@ -226,25 +227,40 @@ d3.sankey = function() {
         .sortKeys(d3.ascending)
         .entries(nodes)
         .map(function(d) { return d.values; });
-
+     
     initializeNodeDepth();
-    resolveCollisions();
-    for (var alpha = 1; iterations > 0; --iterations) {
-      relaxRightToLeft(alpha *= .99);
+      
+    if (!("posY" in nodes[1])) {
       resolveCollisions();
-      relaxLeftToRight(alpha);
-      resolveCollisions();
-    }
+      for (var alpha = 1; iterations > 0; --iterations) {
+        relaxRightToLeft(alpha *= .99);
+        resolveCollisions();
+        relaxLeftToRight(alpha);
+        resolveCollisions();
+      }
     moveVerticalDown();
+    };
     
     function initializeNodeDepth() {
-      var ky = d3.min(nodesByBreadth, function(nodes) {
-        return (size[1] - (nodes.length - 1) * nodePadding) / d3.sum(nodes, value);
+      var posYlist = [ ],
+          maxPosY,
+          ky = d3.min(nodesByBreadth, function(nodes) {
+            return (size[1] - (nodes.length - 1) * nodePadding) / d3.sum(nodes, value);
+          });
+          
+      nodes.forEach(function(node) {
+        posYlist.push(node.posY)
       });
-
+      
+      maxPosY = Math.max(Math.max.apply(null, posYlist), 1);
       nodesByBreadth.forEach(function(nodes) {
         nodes.forEach(function(node, i) {
-          node.y = i;
+          if ("posY" in node) {
+            node.y = node.posY / maxPosY * size[1];
+          } 
+          else {
+            node.y = i; 
+          };
           node.dy = node.value * ky;
         });
       });
