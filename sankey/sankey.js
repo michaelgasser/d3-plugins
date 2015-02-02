@@ -88,10 +88,10 @@ d3.sankey = function() {
           };
         var yi = d3.interpolateNumber(y1, y4);
         if (deltaY > 0) {
-            y3 = Math.min(yi(curvature), y4-d.dy);
+            y3 = Math.min(yi(curvature), y4-2*d.dy);
           }
         else {
-            y3 = Math.max(yi(curvature), y4+d.dy);
+            y3 = Math.max(yi(curvature), y4+2*d.dy);
           };
       }
       
@@ -101,8 +101,8 @@ d3.sankey = function() {
           x5 = d.target.x,
           x4 = x5 - d.target.dx,
           xi = d3.interpolateNumber(x1, x4), 
-          x2 = Math.max(xi(curvature), x1+d.dy),
-          x3 = Math.min(xi(curvature), x4-d.dy),
+          x2 = Math.max(xi(curvature), x1+2*d.dy),
+          x3 = Math.min(xi(curvature), x4-2*d.dy),
           y0 = d.source.y + d.sy + d.dy / 2,
           y1 = y0,
           y5 = d.target.y + d.ty + d.dy / 2,
